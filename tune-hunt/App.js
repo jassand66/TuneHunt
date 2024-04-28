@@ -1,9 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View, Alert } from 'react-native';
+import { StyleSheet, Alert,  View, Image, Text } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
-
+import axios from 'axios';
+import { encode as base64Encode } from 'base-64';
 export default function App() {
+  const spotifyCredentials = {
+    clientId: 'c4fff062898b43b9b21a13d318a1f44b',
+    clientSecret: '2a8dbcdf36ae49eabc5b4675a3b00733'
+  };
+
   const [region, setRegion] = useState({
     latitude: undefined,
     longitude: undefined,
@@ -11,6 +17,7 @@ export default function App() {
     longitudeDelta: 0.0421,
   });
   const [userLocation, setUserLocation] = useState(null);
+  const [albumArt, setAlbumArt] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -18,7 +25,41 @@ export default function App() {
       console.log(region.latitude, region.longitude);
     };
     fetchData();
+    authenticateSpotify().then(fetchRandomAlbum);
   }, []);
+  const authenticateSpotify = async () => {
+    const params = new URLSearchParams();
+    params.append('grant_type', 'client_credentials');
+  
+    // Correctly encode Client ID and Client Secret using base-64 library
+    const credentials = base64Encode(`${spotifyCredentials.clientId}:${spotifyCredentials.clientSecret}`);
+    const headers = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${credentials}`
+    };
+  
+    try {
+      const response = await axios.post('https://accounts.spotify.com/api/token', params, { headers });
+      return response.data.access_token;
+    } catch (error) {
+      console.error('Spotify Authentication failed', error);
+      return null;
+    }
+  };
+  const fetchRandomAlbum = async (accessToken) => {
+    try {
+      const response = await axios.get('https://api.spotify.com/v1/browse/new-releases', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      const albums = response.data.albums.items;
+      const randomAlbum = albums[Math.floor(Math.random() * albums.length)];
+      setAlbumArt(randomAlbum.images[0].url);
+    } catch (error) {
+      console.error('Failed to fetch album data', error);
+    }
+  };
 
   async function getLocationPermission() {
     try {
@@ -62,6 +103,13 @@ export default function App() {
           )}
         </MapView>
       )}
+      <View style={styles.container}>
+      {albumArt ? (
+        <Image source={{ uri: albumArt }} style={styles.albumArt} resizeMode="cover" />
+      ) : (
+        <Text>Loading...</Text>
+      )}
+    </View>
     </View>
   );
 }
@@ -90,4 +138,8 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'white',
   },
+  albumArt: {
+    width: 300,
+    height: 300, // Make sure these dimensions are set
+  }
 });

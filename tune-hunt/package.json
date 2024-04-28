@@ -9,6 +9,8 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "axios": "^1.6.8",
+    "base-64": "^1.0.0",
     "expo": "~50.0.14",
     "expo-location": "~16.5.5",
     "expo-status-bar": "~1.11.1",
