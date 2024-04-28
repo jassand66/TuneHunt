@@ -67,7 +67,6 @@ export default function App() {
         longitude: location.coords.longitude,
       });
 
-      // const randomLocations = generateRandomPoints(location.coords, 11200, 2000); 
       const randomLocations = generateRandomPoints(location.coords, 530, 5); 
       setRandomPoints(randomLocations);
     } catch (error) {
@@ -85,7 +84,9 @@ export default function App() {
         ...userLocation,
         latitudeDelta: 0.001,
         longitudeDelta: 0.001
-      }, 1000); // Smooth transition to user location over 1000 ms
+      }, 1000);
+    } else {
+      console.log('MapView or user location is not available.');
     }
   };
 
@@ -94,6 +95,7 @@ export default function App() {
       {region.latitude !== undefined && region.longitude !== undefined && (
         <View style={styles.mapContainer}>
         <MapView
+          ref={mapRef}
           style={styles.map}
           initialRegion={region}
           onRegionChangeComplete={onRegionChangeComplete}
