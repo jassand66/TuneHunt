@@ -1,40 +1,49 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StyleSheet, View, Alert, Button } from 'react-native';
+import { StyleSheet, View, Alert, Button, Text } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
+// import Icon from 'react-native-vector-icons/FontAwesome';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import MapScreen from './MapScreen';  // Import your MapScreen
+import ProfilePage from './ProfilePage';  // Import your ProfilePage
+import Library from './Library';  // Import your Library
 
-function generateRandomPoints(center, radius, count) {
-  const points = [];
-  for (let i = 0; i < count; i++) {
-    const y0 = center.latitude;
-    const x0 = center.longitude;
-    const rd = radius / 111300; // about 111300 meters in one degree
+const Stack = createNativeStackNavigator(); // This line creates the Stack navigator
 
-    const u = Math.random();
-    const v = Math.random();
-    const w = rd * Math.sqrt(u);
-    const t = 2 * Math.PI * v;
-    const x = w * Math.cos(t);
-    const y = w * Math.sin(t);
+// function generateRandomPoints(center, radius, count) {
+//   const points = [];
+//   for (let i = 0; i < count; i++) {
+//     const y0 = center.latitude;
+//     const x0 = center.longitude;
+//     const rd = radius / 111300; // about 111300 meters in one degree
+
+//     const u = Math.random();
+//     const v = Math.random();
+//     const w = rd * Math.sqrt(u);
+//     const t = 2 * Math.PI * v;
+//     const x = w * Math.cos(t);
+//     const y = w * Math.sin(t);
     
-    const newLat = y + y0;
-    const newLon = x + x0;
+//     const newLat = y + y0;
+//     const newLon = x + x0;
 
-    points.push({ latitude: newLat, longitude: newLon });
-  }
-  return points;
-}
+//     points.push({ latitude: newLat, longitude: newLon });
+//   }
+//   return points;
+// }
 
 
 export default function App() {
-    const [region, setRegion] = useState({
-      latitude: undefined,
-      longitude: undefined,
-      latitudeDelta: 0.0922,
-      longitudeDelta: 0.0421,
-      // latitudeDelta: minLatitudeDelta,
-      // longitudeDelta: minLatitudeDelta,
-    });
+  const [region, setRegion] = useState({
+    latitude: undefined,
+    longitude: undefined,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+    // latitudeDelta: minLatitudeDelta,
+    // longitudeDelta: minLatitudeDelta,
+  });
   const [userLocation, setUserLocation] = useState(null);
   const [randomPoints, setRandomPoints] = useState([]);
   const mapRef = useRef(null);  // useRef to create a reference to the MapView
@@ -67,6 +76,7 @@ export default function App() {
         longitude: location.coords.longitude,
       });
 
+      // const randomLocations = generateRandomPoints(location.coords, 11200, 2500); 
       const randomLocations = generateRandomPoints(location.coords, 530, 5); 
       setRandomPoints(randomLocations);
     } catch (error) {
@@ -77,6 +87,22 @@ export default function App() {
   const onRegionChangeComplete = (newRegion) => {
     setRegion(newRegion);  // Update region when user changes the map region
   };
+
+  
+  // const onRegionChangeComplete = async (newRegion) => {
+  //   setRegion(newRegion);  // Update region when user changes the map region
+  
+  //   // Check if the region change is significant enough to warrant new points generation
+  //   // This prevents excessive updates
+  //   if (Math.abs(newRegion.latitude - region.latitude) > newRegion.latitudeDelta / 2 ||
+  //       Math.abs(newRegion.longitude - region.longitude) > newRegion.longitudeDelta / 2) {
+  //     const randomLocations = generateRandomPoints({
+  //       latitude: newRegion.latitude,
+  //       longitude: newRegion.longitude
+  //     }, 530, 5);  // You can adjust the radius and count as needed
+  //     setRandomPoints(randomLocations);
+  //   }
+  // };
 
   const resetMapView = () => {
     if (mapRef.current && userLocation) {
@@ -91,74 +117,34 @@ export default function App() {
   };
 
   return (
-    <View style={styles.container}>
-      {region.latitude !== undefined && region.longitude !== undefined && (
-        <View style={styles.mapContainer}>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          initialRegion={region}
-          onRegionChangeComplete={onRegionChangeComplete}
-          minZoomLevel={16} 
-        >
-          {userLocation && (
-            <Marker
-            coordinate={userLocation}
-            title="Your Location"
-          >
-            <View style={styles.marker}>
-              <View style={styles.innerMarker} />
-            </View>
-          </Marker>
-          )}
-          {randomPoints.map((point, index) => (
-          <Marker
-            key={index}
-            coordinate={point}
-            title={`Random Point ${index + 1}`}
-          >
-            <View style={styles.randomMarker} />
-          </Marker>
-        ))}
-        </MapView>
-        <Button title="Reset Map" onPress={resetMapView} style={styles.resetButton} />
-        </View>
-      )}
-    </View>
+    <NavigationContainer>
+      <Stack.Navigator 
+        initialRouteName="Map"
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: 'black', // Set the background color of the navigation bar to black
+          },
+          headerTintColor: 'white', // Set the text color of the navigation bar to white
+        }}>
+        <Stack.Screen name="Map" component={MapScreen} />
+        <Stack.Screen name="ProfilePage" component={ProfilePage} />
+        <Stack.Screen name="Library" component={Library} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'white',
-  },
-  mapContainer: {
-    width: '100%',
-    height: '100%',
-    position: 'relative', // This allows absolute positioning within the container
-  },
-  map: {
-    width: '100%',
-    height: '92%',
-  },
-  marker: {
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  innerMarker: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'blue',
-    borderWidth: 2,
-    borderColor: 'white',
-  },
-  randomMarker: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: 'black',
-  },  
-});
+
+<Stack.Navigator
+          initialRouteName="Map"
+          screenOptions={{
+            headerStyle: {
+              backgroundColor: 'black', // Set the background color of the navigation bar to black
+            },
+            headerTintColor: 'white', // Set the text color of the navigation bar to white
+          }}
+        >
+          <Stack.Screen name="Map" component={MapScreen} />
+          <Stack.Screen name="ProfilePage" component={ProfilePage} />
+          <Stack.Screen name="Library" component={Library} />
+        </Stack.Navigator>
