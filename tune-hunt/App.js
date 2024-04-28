@@ -92,6 +92,7 @@ export default function App() {
   return (
     <View style={styles.container}>
       {region.latitude !== undefined && region.longitude !== undefined && (
+        <View style={styles.mapContainer}>
         <MapView
           style={styles.map}
           initialRegion={region}
@@ -118,8 +119,9 @@ export default function App() {
           </Marker>
         ))}
         </MapView>
+        <Button title="Reset Map" onPress={resetMapView} style={styles.resetButton} />
+        </View>
       )}
-      <Button title="Reset Map" onPress={resetMapView} style={styles.resetButton} />
     </View>
   );
 }
@@ -127,7 +129,7 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'coral',
+    backgroundColor: 'white',
   },
   mapContainer: {
     width: '100%',
