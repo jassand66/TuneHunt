@@ -127,7 +127,7 @@ export default function App() {
           headerTintColor: 'white', // Set the text color of the navigation bar to white
         }}>
         <Stack.Screen name="Map" component={MapScreen} />
-        <Stack.Screen name="ProfilePage" component={ProfilePage} />
+        {/* <Stack.Screen name="ProfilePage" component={ProfilePage} /> */}
         <Stack.Screen name="Library" component={Library} />
       </Stack.Navigator>
     </NavigationContainer>
