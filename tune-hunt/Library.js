@@ -1,52 +1,47 @@
 import React, { useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, TextInput, FlatList, Dimensions, Modal, Button } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { useAlbums } from './AlbumContext';
+import { Linking } from 'react-native';
 
 const Library = () => {
     const [searchText, setSearchText] = useState('');
-    const [selectedAlbum, setSelectedAlbum] = useState(null); 
-    const [modalVisible, setModalVisible] = useState(false); 
+    const { albums } = useAlbums();
 
-    const albumsData = [
-        { id: 1, title: 'Currents', artist: 'Tame Impala', coverURL: require('./albumLibrary/Currents__Tame-Impala.jpeg') },
-        { id: 3, title: 'Flower Boy', artist: 'Tyler The Creator', coverURL: require('./albumLibrary/Flower-Boy__Tyler_The_Creator.jpeg') },
-        { id: 4, title: 'Goat', artist: 'Diljit Dosanj', coverURL: require('./albumLibrary/Goat_Diljit.jpeg') },
-        { id: 5, title: 'Lemonade', artist: 'Beyonce', coverURL: require('./albumLibrary/Lemonade__Beyonce.jpeg') },
-        { id: 6, title: 'Lets Start Here', artist: 'Lil Yachty', coverURL: require('./albumLibrary/Lets-Start-Here__LilYachty.jpeg') },
-    ];
-
-    const windowWidth = Dimensions.get('window').width;
-    const numColumns = 3;
-    //const albumCoverWidth = (windowWidth - 20 * numColumns) / numColumns;
-
-    const filteredAlbums = albumsData.filter(album => {
+    const filteredAlbums = albums.filter(album => {
         const artistMatch = album.artist.toLowerCase().includes(searchText.toLowerCase());
         const titleMatch = album.title.toLowerCase().includes(searchText.toLowerCase());
         return artistMatch || titleMatch;
     });
 
-    const handleAlbumPress = (album) => {
-        setSelectedAlbum(album);
-        setModalVisible(true);
+    const openSpotifyLink = (url) => {
+        if (!url) {
+            console.error("No URL provided to openSpotifyLink");
+            return; // Exit the function if the URL is undefined or empty
+        }
+        Linking.canOpenURL(url).then(supported => {
+            if (supported) {
+                Linking.openURL(url);
+            } else {
+                console.error("Don't know how to open URI: " + url);
+            }
+        }).catch(err => console.error('An error occurred', err));
     };
 
-    const renderItem = ({ item }) => (
-        // <TouchableOpacity onPress={() => handleAlbumPress(item)}>
+    const renderItem = ({ item }) => {
+        return (
             <View style={styles.albumContainer}>
-                <Image source={item.coverURL} style={styles.albumCover} />
+                <Image source={{ uri: item.coverURL }} style={styles.albumCover} onError={(e) => console.error('Image load error:', e.nativeEvent.error)} />
                 <Text style={styles.albumTitle}>{item.title}</Text>
                 <Text style={styles.artistName}>{item.artist}</Text>
-                <TouchableOpacity>
-                  <View style={styles.surroundButton}>
-                  <Image source={require('./spotify.png')} style={styles.spotifyButton} />
-                  </View>
+                <TouchableOpacity onPress={() => openSpotifyLink(item.spotifyLink)}>
+                    <View style={styles.surroundButton}>
+                        <Image source={require('./spotify.png')} style={styles.spotifyButton} />
+                    </View>
                 </TouchableOpacity>
-                {/* <Button title="Spotify" style={styles.spotifyButton} onPress={() => {
-                    // Implement navigation to Spotify with selected album
-                }} /> */}
             </View>
-        // </TouchableOpacity>
-    );
+        );
+    };
+    
 
     return (
         <View style={styles.container}>
@@ -64,27 +59,6 @@ const Library = () => {
                 numColumns={3}
                 contentContainerStyle={styles.albumList}
             />
-            {/* <Modal
-                animationType="slide"
-                transparent={true}
-                visible={modalVisible}
-                onRequestClose={() => setModalVisible(false)}
-            > */}
-                {/* <BlurView style={StyleSheet.absoluteFill} blurType="light" blurAmount={10}> */}
-                    {/* <View style={styles.modalContainer}> */}
-                        {/* <Text style={styles.albumTitle}>{selectedAlbum?.title}</Text> */}
-                        {/* <Text style={styles.artistName}>{selectedAlbum?.artist}</Text> */}
-                        {/* <TextInput
-                            style={styles.dateInput}
-                            placeholder="Enter date..."
-                        /> */}
-                        {/* <Button title="Go to Spotify" onPress={() => {
-                            // Implement navigation to Spotify with selected album
-                        }} /> */}
-                        {/* <Button title="Close" onPress={() => setModalVisible(false)} /> */}
-                    {/* </View> */}
-                {/* </BlurView> */}
-            {/* </Modal> */}
         </View>
     );
 };
@@ -106,25 +80,36 @@ const styles = StyleSheet.create({
         
     },
     albumList: {
-        alignItems: 'center',
+        // alignItems: 'center',
+        flexDirection: 'row', // Set direction to row
+        flexWrap: 'wrap', // Allow items to wrap to the next line
+        justifyContent: 'space-between',
     },
     albumContainer: {
-        margin: 5, // Adjusted margin for proper spacing
+        // width: '30%',
+        // margin: 5, // Adjusted margin for proper spacing
+        marginLeft: 5,
+        marginRight: 5,
+        marginBottom: 15,
         alignItems: 'center',
     },
     albumCover: {
-        width: (Dimensions.get('window').width - 20 * 3) / 3, // Calculate width inline
-        height: (Dimensions.get('window').width - 20 * 3) / 3,
+        // width: (Dimensions.get('window').width - 20 * 3) / 3, // Calculate width inline
+        // height: (Dimensions.get('window').width - 20 * 3) / 3,
+        width: 100,
+        aspectRatio: 1,
         marginBottom: 5, // Added margin to separate cover from captions
     },
     albumTitle: {
         textAlign: 'center',
         fontWeight: 'bold',
         color: 'white',
+        width: (Dimensions.get('window').width - 20 * 3) / 3,
     },
     artistName: {
         textAlign: 'center',
         color: 'white',
+        width: (Dimensions.get('window').width - 20 * 3) / 3,
     },
     modalContainer: {
         backgroundColor: 'rgba(255, 255, 255, 0.7)', // White background color

@@ -2,18 +2,16 @@ import React, { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View, Alert, Button, Text, TouchableOpacity, Image, Animated } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
-import IconF from 'react-native-vector-icons/FontAwesome';
 import Icon from 'react-native-vector-icons/Ionicons';
 import IconM from 'react-native-vector-icons/MaterialIcons';
 import axios from 'axios';
 import { encode as base64Encode } from 'base-64';
-import { geolib, getDistance } from 'geolib';
-
+import { getDistance } from 'geolib';
+import { useAlbums } from './AlbumContext';
 
 function AlbumMarker({ albumArtUrl, size }) {
   return (
     <View style={styles.markerContainer}>
-    {/* <TouchableOpacity style={styles.markerContainer} onPress={() => console.log("hi")} > */}
       <Image
         source={require('./frame.png')}
         style={{
@@ -26,7 +24,7 @@ function AlbumMarker({ albumArtUrl, size }) {
       />
       {albumArtUrl && (
         <Image
-          source={{ uri: albumArtUrl }}
+          source={{ uri: albumArtUrl.url }}
           style={{
             position: 'absolute',
             width: size * 0.5,
@@ -37,7 +35,6 @@ function AlbumMarker({ albumArtUrl, size }) {
           }}
         />
       )}
-      {/* </TouchableOpacity> */}
     </View>
   );
 }
@@ -51,7 +48,6 @@ const darkMapStyle = [
     elementType: 'labels.text.fill',
     stylers: [{ color: '#d59563' }]
   },
-  // Add more styles as needed
 ];
 
   function generateRandomPoints(center, radius, count) {
@@ -77,6 +73,18 @@ const darkMapStyle = [
   } 
   
   function MapScreen({ navigation }) {
+    const { addAlbum } = useAlbums();
+    const { albums } = useAlbums();
+    const addToLibrary = (album) => {
+      addAlbum({
+          id: new Date().getTime(), // Simple unique ID for example
+          title: album.name,
+          artist: album.artist, // You might want to handle artist name similarly to album name
+          spotifyLink: album.link,
+          coverURL: album.url, // Assuming album.url is the path to the image
+      });
+    };
+
     const [region, setRegion] = useState({
       latitude: undefined,
       longitude: undefined,
@@ -101,6 +109,7 @@ const darkMapStyle = [
     const [markersInRange, setMarkersInRange] = useState(new Array(randomPoints.length).fill(false));
 
     const handleMarkerPress = (albumUrl, userLocation, markerLocation, index) => {
+      // console.log('Selected Album Data:', albumUrl);
       const distance = getDistance(
         { latitude: userLocation.latitude, longitude: userLocation.longitude },
         { latitude: markerLocation.latitude, longitude: markerLocation.longitude }
@@ -112,7 +121,25 @@ const darkMapStyle = [
     
       if (distance <= 1000) { // remember to change above too
         console.log(`Album selected: ${albumUrl}`);
-        Alert.alert('Album Selected', `You selected the album: ${albumUrl}`);
+        console.log('Album Url: ', albumUrl);
+        console.log('Album Url: ', albumUrl.artist);
+        console.log('Album spotifyLink: ', albumUrl.link);
+        Alert.alert(
+          'Album Selected', // Title of the alert
+          `Do you want to add ${albumUrl.name} to your collection?`, // Message of the alert
+          [
+            {
+              text: 'No', // First button text
+              onPress: () => console.log('Not adding to library'), // No-op or specific logic for 'No'
+              style: 'cancel', // Optional style definition
+            },
+            {
+              text: 'Yes', // Second button text
+              onPress: () => addToLibrary(albumUrl), // Function to add album to library
+            },
+          ],
+          { cancelable: true } // Whether to close the alert on tapping outside of it
+        );
       } else {
         setPopupMessage('Not in range, get closer');
         setShowPopup(true);
@@ -133,7 +160,7 @@ const darkMapStyle = [
           }, 3000); // Start fading out after the popup has been visible for 3 seconds
         });
       }
-    };    
+    };  
 
     useEffect(() => {
       const fetchData = async () => {
@@ -159,10 +186,16 @@ const darkMapStyle = [
         const response = await axios.get('https://api.spotify.com/v1/browse/new-releases', {
           headers: { 'Authorization': `Bearer ${accessToken}` }
         });
+        // console.log(response.data.albums.items);
         const albums = response.data.albums.items;
         const randomAlbums = albums.sort(() => 0.5 - Math.random()).slice(0, count);
-        const albumImages = randomAlbums.map(album => album.images[0].url);
-        setAlbumArts(albumImages);
+        const albumDetails = randomAlbums.map(album => ({
+          url: album.images[0].url,
+          name: album.name,
+          artist: album.artists[0].name,
+          link: album.external_urls.spotify
+        }));
+        setAlbumArts(albumDetails);
       } catch (error) {
         console.error('Failed to fetch album data', error);
       }
@@ -258,32 +291,15 @@ const darkMapStyle = [
             minZoomLevel={16} 
             customMapStyle={darkMapStyle}
           >
-            {/* {userLocation && (
-              <Marker
-              coordinate={userLocation}
-              title="Your Location"
-            >
-              <View style={styles.marker}>
-                <View style={styles.innerMarker} />
-              </View>
-            </Marker>
-            )} */}
-
-            {/* old good one, new one below works too */}
-            {/* {randomPoints.map((point, index) => (
-            <Marker key={index} coordinate={point} title={`Random Point ${index + 1}`}>
-              <TouchableOpacity onPress={() => handleMarkerPress(albumArts[index], userLocation, point)} style={{ padding: 30, borderWidth: 1, borderColor: 'transparent' }} >
-                <AlbumMarker albumArtUrl={albumArts[index]} size={markerStyle.width} />
-              </TouchableOpacity>
-            </Marker>
-          ))} */}
-
             {randomPoints.map((point, index) => (
               <Marker
                 key={index}
                 coordinate={point}
                 title={markersInRange[index] ? `Random Point ${index + 1}` : undefined}
               >
+                {/* <TouchableOpacity onPress={() => handleMarkerPress(albumArts[index], userLocation, point, index)} style={{ padding: 30, borderWidth: 1, borderColor: 'transparent' }} >
+                  <AlbumMarker albumArtUrl={albumArts[index]} size={markerStyle.width} />
+                </TouchableOpacity> */}
                 <TouchableOpacity onPress={() => handleMarkerPress(albumArts[index], userLocation, point, index)} style={{ padding: 30, borderWidth: 1, borderColor: 'transparent' }} >
                   <AlbumMarker albumArtUrl={albumArts[index]} size={markerStyle.width} />
                 </TouchableOpacity>
@@ -394,14 +410,6 @@ const styles = StyleSheet.create({
       color: 'black',
     },
   });
-  
-  // export default function App() {
-  //   return (
-  //     <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-  //       <Icon name="navigate" size={30} color="#4F8EF7" />
-  //       <Text>Is the icon showing above?</Text>
-  //     </View>
-  //   );
-  // };
+
   
   export default MapScreen;
